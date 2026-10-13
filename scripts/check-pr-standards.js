@@ -1127,7 +1127,8 @@ function buildReviewBody(data, isReReview, modelId, unplaceable) {
  */
 async function postReview(data, diff, modelId, isReReview, reviewThreads = [], incrementalDiff = null, resolvedThreads = []) {
   const validLines = parseDiffForValidLines(diff);
-  // For re-reviews, new_findings are only valid on lines from the incremental diff.
+  // Re-review inline targets must be in both the incremental diff and the current PR diff.
+  // Merging the base branch can introduce incremental lines outside the PR's own changes.
   // null incrementalDiff means we couldn't compute it — fall back to full diff to be safe.
   const newFindingValidLines = isReReview
     ? (incrementalDiff !== null ? parseDiffForValidLines(incrementalDiff) : validLines)
@@ -1157,7 +1158,7 @@ async function postReview(data, diff, modelId, isReReview, reviewThreads = [], i
 
   for (const finding of findingsForInline) {
     const fileLines = newFindingValidLines.get(finding.path);
-    if (fileLines && fileLines.has(finding.line)) {
+    if (fileLines && fileLines.has(finding.line) && validLines.get(finding.path)?.has(finding.line)) {
       const icon = finding.priority === 'must_fix' ? '🔴' : '🟡';
       inlineComments.push({
         path: finding.path,
